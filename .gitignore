@@ -1,3 +1,9 @@
-config.json
 test
 .idea
+__pycache__
+chats/**
+!chats/chat_list.json
+!chats/demo_chat.json
+config.json
+temp.py
+run.log
