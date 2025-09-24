@@ -9,8 +9,10 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_openai import ChatOpenAI
 from config import Config
 from logger import logger
+import datetime
 import time
 import json
+import uuid
 import sys
 import os
 
@@ -82,9 +84,30 @@ def judge_role_valid(role):
     return True if response.content == '是' else False
 
 
+def load_chat_list():
+    if not os.path.exists("chats"):
+        os.mkdir("chats")
+        return []
+    filename = os.path.join("chats", "chat_list.json")
+    with open(filename, "r", encoding='utf-8') as file:
+        chat_list = dict(json.load(file))
+    return chat_list
+
+
+def update_chat_list(chat_list):
+    filename = os.path.join("chats", "chat_list.json")
+    with open(filename, "w", encoding='utf-8') as file:
+        json.dump(chat_list, file, ensure_ascii=False, indent=4)
+    return None
+
+
 def main():
+    chat_list = load_chat_list()
+    print(chat_list.keys(), sep='\n')
+    chat_id = str(uuid.uuid4())
     messages = []
-    role = "心海"
+    role = "哈利波特"
+    chat_list[chat_id] = [role, datetime.datetime.now().strftime("%Y%m%d%H%M%S")]
     if not judge_role_valid(role):
         logger.info(f"Invalid role: {role}")
         sys.exit()
@@ -105,7 +128,7 @@ def main():
             continue
 
         elif prompt.startswith('save'):
-            filename = prompt[5:]
+            filename = prompt[5:] if len(prompt) > 4 else os.path.join('chats', f'{chat_id}.json')
             with open(filename, "w", encoding='utf-8') as file:
                 json.dump(messages, file,  ensure_ascii=False, indent=4)
             print(f"{role}: 已保存聊天记录")
@@ -114,7 +137,7 @@ def main():
         elif prompt.startswith('load'):
             filename = prompt[5:]
             if not os.path.exists(filename):
-                print(f"{role}: 已加载聊天记录")
+                print(f"{role}: 聊天记录不存在")
             with open(filename, "r", encoding='utf-8') as file:
                 messages = json.load(file)
             for message in messages:
@@ -136,8 +159,9 @@ def main():
 
         messages.append(("ai", answer))
         print(f"{role}: {answer}")
-        if len(messages) >= 200:
+        if len(messages) >= 600:
             del messages[0:1]
+    update_chat_list(chat_list)
 
 
 if __name__ == "__main__":
